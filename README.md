@@ -10,7 +10,8 @@ not supposed to modify text outside these markers. When you're done we suggest
 you change `FIXME` to `DONE`, but this isn't required.
 
 - **Chapter 0**: Making sure your IDE is set up for Dafny (see installation
-instructions below).
+  instructions below).
+- **Chapter 1**: Learn some fundamental Dafny syntax and concepts.
 
 ## Installation
 
