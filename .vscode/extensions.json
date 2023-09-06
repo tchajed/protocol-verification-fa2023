@@ -1,0 +1,7 @@
+{
+	"recommendations": [
+		"dafny-lang.ide-vscode",
+		"wayou.vscode-todo-highlight",
+	],
+	"unwantedRecommendations": []
+}
