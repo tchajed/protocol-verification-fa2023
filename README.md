@@ -40,3 +40,10 @@ is to install the SDK from
 On macOS, you can instead use `brew install dotnet@6` and then in VS Code set
 the option "Dafny: Dotnet Executable Path" to the output of `echo $(brew
 --prefix dotnet@6)/bin/dotnet`.
+
+## Learning Dafny
+
+If you get stuck on something Dafny related, you might find what you need in a
+[syntax tutorial](https://github.com/tchajed/dafny-syntax-tutorial) I wrote, or
+you can check out the Dafny [getting started
+guide](https://dafny.org/latest/OnlineTutorial/guide).
