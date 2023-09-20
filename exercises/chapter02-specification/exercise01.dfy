@@ -45,7 +45,7 @@ lemma EvenDefinitionsAreEquivalent(x:int)
 // like C# or Java (among other supported languages).
 //
 // Define fibo(n) to be the nth Fibonacci number. The first few numbers in this
-// sequence are 0, 1, 2, 3, 5, 8, 13, ... (each number is the sum of the
+// sequence are 0, 1, 1, 2, 3, 5, 8, 13, ... (each number is the sum of the
 // previous two, except for the base cases).
 function fibo(n:nat) : nat
 {
