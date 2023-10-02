@@ -13,6 +13,7 @@ ghost predicate TakeTurn(v: Variables, v': Variables) {
     && p < |v.piles|
     && take <= v.piles[p]
     && v'.piles == v.piles[p := v.piles[p] - take]
+       // DEMO: deliberate bug here: we didn't specify anything about v'.turn
 }
 
 ghost predicate Next(v: Variables,  v': Variables) {
