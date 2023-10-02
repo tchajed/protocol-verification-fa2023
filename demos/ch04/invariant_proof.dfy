@@ -20,14 +20,17 @@ lemma InvHoldsTo(e: nat -> Variables, i: nat)
   requires Inv(e(0))
   requires forall i:nat :: Next(e(i), e(i+1))
   requires forall v, v' :: Inv(v) && Next(v, v') ==> Inv(v')
-  ensures forall j:nat :: j <= i ==> Inv(e(j))
+  ensures Inv(e(i))
 {
   if i == 0 {
     return;
   }
   InvHoldsTo(e, i-1);
+  // this is the inductive hypothesis
   assert Inv(e(i-1));
-  assert Inv(e(i));
+  // the requirements let us take the invariant from one step to the next (so in
+  // particular from e(i-1) to e(i)).
+  assert forall i:nat :: Inv(e(i)) ==> Inv(e(i+1));
 }
 
 ghost predicate IsBehavior(e: Behavior) {
