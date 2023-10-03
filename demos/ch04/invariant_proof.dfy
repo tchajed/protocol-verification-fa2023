@@ -15,6 +15,13 @@ predicate Inv(v: Variables)
 // We're going to reason about infinite executions, called behaviors here.
 type Behavior = nat -> Variables
 
+/* Now we want to prove the lemma below called SafetyAlwaysHolds. Take a look at
+ * its theorem statement. To prove this lemma, we need a helper lemma for two
+ * reasons: first, (because of Dafny) we need to have access to a variable for i
+ * to perform induction on it, and second, (more fundamentally) we need to
+ * _strengthen the induction hypothesis_ and prove `Inv(e(i))` rather than just
+ * `Safety(e(i))`. */
+
 // This is the key induction.
 lemma InvHoldsTo(e: nat -> Variables, i: nat)
   requires Inv(e(0))
