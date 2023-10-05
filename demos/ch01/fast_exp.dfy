@@ -8,11 +8,12 @@ lemma exp_sum(b: nat, n1: nat, n2: nat)
 {
   if n1 == 0 {
     return;
-  } else {
-    exp_sum(b, n1-1, n2);
   }
+  exp_sum(b, n1-1, n2);
 }
 
+// this "auto" version of exp_sum is convenient when we want to let Z3 figure
+// out how to use exp_sum rather than providing all the arguments ourselves
 lemma exp_sum_auto(b: nat)
   ensures forall n1: nat, n2: nat :: exp(b, n1 + n2) == exp(b, n1) * exp(b, n2)
 {
@@ -21,6 +22,10 @@ lemma exp_sum_auto(b: nat)
     exp_sum(b, n1, n2);
   }
 }
+
+/* A key aspect of this proof is that each iteration handles one bit of the
+ * input. The best way I found to express its loop invariants is to compute and
+ * refer to this sequence of bits, even if the code never materializes it. */
 
 function bits(n: nat): seq<bool>
   decreases n
@@ -39,11 +44,6 @@ lemma bits_from_bits(n: nat)
 {
 }
 
-lemma bits_trim_front(n: nat)
-  requires n > 0
-  ensures from_bits(bits(n)[1..]) == n/2
-{}
-
 lemma from_bits_append(s: seq<bool>, b: bool)
   ensures from_bits(s + [b]) == from_bits(s) + exp(2, |s|) * (if b then 1 else 0)
 {
@@ -59,75 +59,45 @@ lemma from_bits_append(s: seq<bool>, b: bool)
   assert from_bits(s + [b]) == (if s[0] then 1 else 0) + 2 * from_bits(s[1..] + [b]);
 }
 
-lemma mul_dist(a: int, b: int, c: int)
-  ensures a * (b + c) == a * b + a * c
-{}
-
-lemma mul_assoc(a: int, b: int, c: int)
-  ensures a * (b * c) == (a * b) * c
-{}
-
-lemma from_bits_sum(s1: seq<bool>, s2: seq<bool>)
-  decreases s2
-  ensures from_bits(s1 + s2) == from_bits(s1) + exp(2, |s1|) * from_bits(s2)
-{
-  if s2 == [] {
-    assert s1 + s2 == s1;
-    return;
-  }
-  from_bits_sum(s1 + [s2[0]], s2[1..]);
-  assert s1 + [s2[0]] + s2[1..] == s1 + s2;
-  var s2bit0 := if s2[0] then 1 else 0;
-  assert exp(2, |s1|+1) == 2 * exp(2, |s1|) by {
-    exp_sum(2, |s1|, 1);
-  }
-  calc {
-    from_bits(s1 + s2);
-    from_bits(s1 + [s2[0]]) + exp(2, |s1|+1) * from_bits(s2[1..]);
-    {
-      from_bits_append(s1, s2[0]);
-      assert from_bits(s1 + [s2[0]]) == from_bits(s1) + exp(2, |s1|) * s2bit0;
-    }
-    (from_bits(s1) + exp(2, |s1|) * s2bit0) + exp(2, |s1|+1) * from_bits(s2[1..]);
-    from_bits(s1) + exp(2, |s1|) * s2bit0 + exp(2, |s1|+1) * from_bits(s2[1..]);
-    {
-      mul_assoc(exp(2, |s1|), 2, from_bits(s2[1..]));
-      assert exp(2, |s1| + 1) * from_bits(s2[1..]) == exp(2, |s1|) * (2 * from_bits(s2[1..]));
-      mul_dist(exp(2, |s1|), s2bit0, 2 * from_bits(s2[1..]));
-    }
-    from_bits(s1) + exp(2, |s1|) * (s2bit0 + 2 * from_bits(s2[1..]));
-    from_bits(s1) + exp(2, |s1|) * from_bits(s2);
-  }
-}
-
 method fast_exp(b: nat, n: nat) returns (r: nat)
   ensures r == exp(b, n)
 {
+  // a is the exponent so far (see the invariant for the details)
   var a := 1;
+  // c is b^(2^i) where i is the iteration number (see the invariant)
   var c := b;
-  ghost var n0 := n;
+  // we shadow n with a mutable variable since the loop modifies it at each
+  // iteration (it essentially tracks the remaining work, as expressed more
+  // precisely in the invariants)
   var n := n;
+  // we will need to refer to the original value of n, which is shadowed, so to
+  // do that we store it in a ghost variable
+  ghost var n0 := n;
+  // to state the invariants we track the iteration count (but it's not used for
+  // the implementation, which only relies on n)
   ghost var i: nat := 0;
   bits_from_bits(n);
   while n > 0
     decreases n
-    invariant c == exp(b, exp(2, i))
     invariant n <= n0
     invariant i <= |bits(n0)|
+    // c is used to accumulate the exponent for the current bit
+    invariant c == exp(b, exp(2, i))
     invariant bits(n) == bits(n0)[i..]
+    // n is the remaining work
     invariant n == from_bits(bits(n0)[i..])
+    // a has the exponent using the bits of n0 through i
     invariant a == exp(b, from_bits(bits(n0)[..i]))
   {
     ghost var n_loop_top := n;
     if n % 2 == 1 {
       assert bits(n)[0] == true;
-      // a accumulates sum(i => b^(2^n_i), i) where n_i are the 1 bits of n
+      // a accumulates bits(n0)[i..]. In this branch we drop a 1 bit from n and
+      // need to multiply in 2^i multiplications for that bit, which we get from
+      // c
       a := a * c;
       exp_sum(b, n0-n, i);
-      // (n-1)/2 == n/2 in this case, but we want to be extra clear that we're
-      // "dropping" a 1 bit here and so something interesting is happening
-      n := (n-1) / 2;
-      assert 2 * exp(2, i) == exp(2, i+1);
+      n := n / 2;
       assert a == exp(b, from_bits(bits(n0)[..i]) + exp(2, i)) by {
         exp_sum_auto(b);
       }
@@ -139,14 +109,19 @@ method fast_exp(b: nat, n: nat) returns (r: nat)
       n := n / 2;
       assert bits(n0)[..i+1] == bits(n0)[..i] + [bits(n0)[i]];
       from_bits_append(bits(n0)[..i], bits(n0)[i]);
+      // the new bit is a 0 so we don't need to change a to restore the
+      // invariant, we can just advance i
       assert a == exp(b, from_bits(bits(n0)[..i+1]));
     }
     assert n == n_loop_top/2;
     c := c * c;
-    exp_sum(b, exp(2, i), exp(2, i));
-    // assert bits(n0)[i+1..] == bits(n0)[i..][1..];
+    // the invariant for c is relatively easy to maintain
+    assert c == exp(b, exp(2, i+1)) by {
+      exp_sum_auto(b);
+    }
     i := i + 1;
   }
+  // we need to prove that i covers all of bits(n0)
   assert bits(n0)[..i] == bits(n0);
   return a;
 }
