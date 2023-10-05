@@ -59,6 +59,14 @@ lemma from_bits_append(s: seq<bool>, b: bool)
   assert from_bits(s + [b]) == (if s[0] then 1 else 0) + 2 * from_bits(s[1..] + [b]);
 }
 
+lemma mul_dist(a: int, b: int, c: int)
+  ensures a * (b + c) == a * b + a * c
+{}
+
+lemma mul_assoc(a: int, b: int, c: int)
+  ensures a * (b * c) == (a * b) * c
+{}
+
 lemma from_bits_sum(s1: seq<bool>, s2: seq<bool>)
   decreases s2
   ensures from_bits(s1 + s2) == from_bits(s1) + exp(2, |s1|) * from_bits(s2)
@@ -69,8 +77,27 @@ lemma from_bits_sum(s1: seq<bool>, s2: seq<bool>)
   }
   from_bits_sum(s1 + [s2[0]], s2[1..]);
   assert s1 + [s2[0]] + s2[1..] == s1 + s2;
-  from_bits_append(s1, s2[0]);
-  assume false; // TODO
+  var s2bit0 := if s2[0] then 1 else 0;
+  assert exp(2, |s1|+1) == 2 * exp(2, |s1|) by {
+    exp_sum(2, |s1|, 1);
+  }
+  calc {
+    from_bits(s1 + s2);
+    from_bits(s1 + [s2[0]]) + exp(2, |s1|+1) * from_bits(s2[1..]);
+    {
+      from_bits_append(s1, s2[0]);
+      assert from_bits(s1 + [s2[0]]) == from_bits(s1) + exp(2, |s1|) * s2bit0;
+    }
+    (from_bits(s1) + exp(2, |s1|) * s2bit0) + exp(2, |s1|+1) * from_bits(s2[1..]);
+    from_bits(s1) + exp(2, |s1|) * s2bit0 + exp(2, |s1|+1) * from_bits(s2[1..]);
+    {
+      mul_assoc(exp(2, |s1|), 2, from_bits(s2[1..]));
+      assert exp(2, |s1| + 1) * from_bits(s2[1..]) == exp(2, |s1|) * (2 * from_bits(s2[1..]));
+      mul_dist(exp(2, |s1|), s2bit0, 2 * from_bits(s2[1..]));
+    }
+    from_bits(s1) + exp(2, |s1|) * (s2bit0 + 2 * from_bits(s2[1..]));
+    from_bits(s1) + exp(2, |s1|) * from_bits(s2);
+  }
 }
 
 method fast_exp(b: nat, n: nat) returns (r: nat)
@@ -95,7 +122,6 @@ method fast_exp(b: nat, n: nat) returns (r: nat)
     if n % 2 == 1 {
       assert bits(n)[0] == true;
       // a accumulates sum(i => b^(2^n_i), i) where n_i are the 1 bits of n
-      // TODO: n0-n is sum(i => 2^n_i, i), right?
       a := a * c;
       exp_sum(b, n0-n, i);
       // (n-1)/2 == n/2 in this case, but we want to be extra clear that we're
@@ -105,12 +131,14 @@ method fast_exp(b: nat, n: nat) returns (r: nat)
       assert a == exp(b, from_bits(bits(n0)[..i]) + exp(2, i)) by {
         exp_sum_auto(b);
       }
-      assume false;
+      assert bits(n0)[..i+1] == bits(n0)[..i] + [bits(n0)[i]];
+      from_bits_append(bits(n0)[..i], bits(n0)[i]);
       assert a == exp(b, from_bits(bits(n0)[..i+1]));
     } else {
       assert bits(n)[0] == false;
       n := n / 2;
-      assume false;
+      assert bits(n0)[..i+1] == bits(n0)[..i] + [bits(n0)[i]];
+      from_bits_append(bits(n0)[..i], bits(n0)[i]);
       assert a == exp(b, from_bits(bits(n0)[..i+1]));
     }
     assert n == n_loop_top/2;
