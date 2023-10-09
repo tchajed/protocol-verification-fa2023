@@ -1,17 +1,32 @@
 // Ported from ivy/examples/ivy/toy_consensus.ivy.
 
+// Ivy only supports first-order logic, which is limited (perhaps in surprising
+// ways). In this model of consensus, we use some tricks to model quorums in
+// first-order logic without getting into the arithmetic of why sets of n/2+1
+// nodes intersect.
+
 type Node(==)
 type Quorum(==)
 type Choice(==)
 
-predicate Member(n: Node, q: Quorum)
+ghost predicate Member(n: Node, q: Quorum)
 
 // axiom: any two quorums intersect in at least one node
-lemma QuorumIntersect(q1: Quorum, q2: Quorum) returns (n: Node)
+// SOLUTION
+// note we give this without proof: this is in general dangerous! However, here
+// we believe it is possible to have Node and Quorum types with this property.
+//
+// The way we might realize that is to have Node be a finite type (one value for
+// each node in the system) and Quorum to capture any subset with strictly more
+// than half the nodes. Such a setup guarantees that any two quorums intersect.
+// END
+lemma {:axiom} QuorumIntersect(q1: Quorum, q2: Quorum) returns (n: Node)
   ensures Member(n, q1) && Member(n, q2)
 
 datatype Variables = Variables(
   votes: map<Node, set<Choice>>,
+  // this is one reason why this is "toy" consensus: the decision is a global
+  // variable rather than being decided at each node individually
   decision: set<Choice>
 )
 {
@@ -31,6 +46,8 @@ ghost predicate CastVote(v: Variables, v': Variables, step: Step)
 {
   var n := step.n;
   && (v.votes[n] == {})
+     // learn to read these "functional updates" of maps/sequences:
+     // this is like v.votes[n] += {step.c} if that was supported
   && (v' == v.(votes := v.votes[n := v.votes[n] + {step.c}]))
 }
 
@@ -75,7 +92,7 @@ ghost predicate Safety(v: Variables) {
   forall c1, c2 :: c1 in v.decision && c2 in v.decision ==> c1 == c2
 }
 
-// this definition is left in as a hint towards writing the invariant
+// SOLUTION
 ghost predicate ChoiceQuorum(v: Variables, q: Quorum, c: Choice)
   requires v.WF()
 {
@@ -85,14 +102,15 @@ ghost predicate ChoiceQuorum(v: Variables, q: Quorum, c: Choice)
 ghost predicate Inv(v: Variables) {
   && v.WF()
   && Safety(v)
-     // we will need to strengthen the invariant
+  && (forall n, v1, v2 :: v1 in v.votes[n] && v2 in v.votes[n] ==> v1 == v2)
+  && (forall c :: c in v.decision ==> exists q:Quorum :: ChoiceQuorum(v, q, c))
 }
+// END
 
 lemma InitImpliesInv(v: Variables)
   requires Init(v)
   ensures Inv(v)
-{
-}
+{}
 
 lemma InvInductive(v: Variables, v': Variables)
   requires Inv(v)
@@ -100,14 +118,36 @@ lemma InvInductive(v: Variables, v': Variables)
   ensures Inv(v')
 {
   var step :| NextStep(v, v', step);
+  // SOLUTION
   match step {
     case CastVoteStep(n, c) => {
+      forall c | c in v'.decision
+        ensures exists q:Quorum :: ChoiceQuorum(v', q, c)
+      {
+        var q :| ChoiceQuorum(v, q, c);
+        assert ChoiceQuorum(v', q, c);
+      }
       return;
     }
     case DecideStep(c, q) => {
+      forall c | c in v'.decision
+        ensures exists q:Quorum :: ChoiceQuorum(v', q, c)
+      {
+        var q0 :| ChoiceQuorum(v, q0, c);
+        assert ChoiceQuorum(v', q0, c);
+      }
+      forall c1, c2 | c1 in v'.decision && c2 in v'.decision
+        ensures c1 == c2
+      {
+        var q1 :| ChoiceQuorum(v, q1, c1);
+        var q2 :| ChoiceQuorum(v, q2, c2);
+        var n := QuorumIntersect(q1, q2);
+      }
+      assert Safety(v');
       return;
     }
   }
+  // END
 }
 
 lemma SafetyHolds(v: Variables, v': Variables)
