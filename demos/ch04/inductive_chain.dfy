@@ -142,11 +142,11 @@ module Ex {
   }
 
   lemma Inv2Holds(v: Variables, v': Variables)
-    ensures Init(v) ==> Inv(v)
-    ensures Inv(v) && Next(v, v') ==> Inv(v')
+    ensures Init(v) ==> Inv2(v)
+    ensures Inv2(v) && Next(v, v') ==> Inv2(v')
   {
-    assert Init(v) ==> Inv(v);
-    if Inv(v) && Next(v, v') {
+    assert Init(v) ==> Inv2(v);
+    if Inv2(v) && Next(v, v') {
       var step :| NextStep(v, v', step);
       match step {
         case Step1 => { return; }
