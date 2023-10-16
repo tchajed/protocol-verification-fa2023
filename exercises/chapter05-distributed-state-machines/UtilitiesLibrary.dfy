@@ -10,4 +10,6 @@ module UtilitiesLibrary {
   {
     theSeq[|theSeq|-1]
   }
+
+  datatype Option<T> = Some(value:T) | None
 }
