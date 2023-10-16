@@ -47,3 +47,8 @@ If you get stuck on something Dafny related, you might find what you need in a
 [syntax tutorial](https://github.com/tchajed/dafny-syntax-tutorial) I wrote, or
 you can check out the Dafny [getting started
 guide](https://dafny.org/latest/OnlineTutorial/guide).
+
+I recorded a [Dafny debugging
+video](https://www.youtube.com/watch?v=3BkF-1B35y4) of the "toy consensus"
+example ([code here](demos/ch04/toy_consensus.dfy)) that illustrates how to
+come up with an inductive invariant and debug an inductiveness proof.
