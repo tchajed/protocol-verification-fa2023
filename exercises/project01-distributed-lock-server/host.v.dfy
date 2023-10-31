@@ -13,23 +13,18 @@ module Host {
 
   // Define your Message datatype here.
   datatype Message =
-    //#solution
-    Grant(dest:HostId, epoch:nat)
-    //#stub
-    // Message() // Populate this datatype.
-    //#end
+    // FIXME: fill in here (solution: 1 line)
+     Message() // Populate this datatype.
+    // END EDIT
 
   // Define your Host protocol state machine here.
   datatype Constants = Constants(numHosts: nat, myId:HostId)
 
   datatype Variables = Variables(
-    //#solution
-    c: Constants,
-    holdsLock:bool, epoch:nat
-    //#stub
-    // c: Constants
-    //// Fill me in.
-    //#end
+    // FIXME: fill in here (solution: 2 lines)
+     c: Constants
+    // Fill me in.
+    // END EDIT
   )
 
   // You can assume in Init below that the initial constants are set by the
@@ -37,56 +32,24 @@ module Host {
   // machine knows the correct total number of hosts and its own ID.
 
   ghost predicate Init(v:Variables) {
-    //#solution
-    && v.holdsLock == (v.c.myId == 0)
-    && v.epoch == if v.c.myId == 0 then 1 else 0
-       //#stub
-       // true // Replace me
-       //#end
+    // FIXME: fill in here (solution: 2 lines)
+        true // Replace me
+    // END EDIT
   }
-  //#solution
-  ghost predicate DoGrant(v:Variables, v':Variables, msgOps:Network.MessageOps<Message>, step: Step)
-    requires step.DoGrantStep?
-  {
-    var recipient := step.recipient;
-    && v.holdsLock == true
-    && msgOps.recv.None?
-    && ValidHostId(v.c.numHosts, recipient) // Doesn't actually affect safety, but does affect liveness! if we grant to msgOps nonexistent host, no further steps will occur.
-    && msgOps.send == Some(Grant(recipient, v.epoch + 1))
-    && v'.holdsLock == false
-    && v'.epoch == v.epoch
-  }
-
-  ghost predicate DoAccept(v:Variables, v':Variables, msgOps:Network.MessageOps<Message>, step: Step)
-    requires step.DoAcceptStep?
-  {
-    && msgOps.recv.Some?
-    && msgOps.recv.value.dest == v.c.myId
-    && msgOps.recv.value.epoch > v.epoch
-    && msgOps.send == None
-    && v'.epoch == msgOps.recv.value.epoch
-    && v'.holdsLock == true
-  }
-  //#stub
-  //#end
+  // FIXME: fill in here (solution: 22 lines)
+  // END EDIT
   // JayNF
   datatype Step =
-      //#solution
-    | DoGrantStep(recipient: HostId)
-    | DoAcceptStep
-      //#stub
-    // | SomeStep   // Replace me
-    //#end
+      // FIXME: fill in here (solution: 2 lines)
+     | SomeStep   // Replace me
+      // END EDIT
 
   ghost predicate NextStep(v:Variables, v':Variables, msgOps:Network.MessageOps<Message>, step: Step) {
     && v'.c == v.c
     && match step
-       //#solution
-       case DoGrantStep(_) => DoGrant(v, v', msgOps, step)
-       case DoAcceptStep => DoAccept(v, v', msgOps, step)
-       //#stub
-       // case SomeStep => true
-       //#end
+       // FIXME: fill in here (solution: 2 lines)
+        case SomeStep => true
+       // END EDIT
   }
 
   lemma NextStepDeterministic(v: Variables, v'1: Variables, v'2: Variables, msgOps: Network.MessageOps<Message>, step: Step)
