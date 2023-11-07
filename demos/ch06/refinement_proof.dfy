@@ -14,10 +14,10 @@ module Code {
   ghost predicate Init(v: Variables)
   ghost predicate Next(v: Variables, v': Variables, ev: Event)
 
-  ghost predicate IsBehavior(e: nat -> Event) {
+  ghost predicate IsBehavior(tr: nat -> Event) {
     exists ss: nat -> Variables ::
       && Init(ss(0))
-      && forall n: nat :: Next(ss(n), ss(n + 1), e(n))
+      && forall n: nat :: Next(ss(n), ss(n + 1), tr(n))
   }
 }
 
@@ -27,10 +27,10 @@ module Spec {
   ghost predicate Init(v: Variables)
   ghost predicate Next(v: Variables, v': Variables, ev: Event)
 
-  ghost predicate IsBehavior(e: nat -> Event) {
+  ghost predicate IsBehavior(tr: nat -> Event) {
     exists ss: nat -> Variables ::
       && Init(ss(0))
-      && forall n: nat :: Next(ss(n), ss(n + 1), e(n))
+      && forall n: nat :: Next(ss(n), ss(n + 1), tr(n))
   }
 }
 
@@ -52,47 +52,47 @@ lemma {:axiom} AbstractionInductive(v: Code.Variables, v': Code.Variables, ev: E
   ensures Inv(v')
   ensures Spec.Next(Abstraction(v), Abstraction(v'), ev)
 
-lemma InvAt(e: nat -> Event, ss: nat -> Code.Variables, i: nat)
+lemma InvAt(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
   requires Code.Init(ss(0))
-  requires forall k:nat :: Code.Next(ss(k), ss(k + 1), e(k))
+  requires forall k:nat :: Code.Next(ss(k), ss(k + 1), tr(k))
   ensures Inv(ss(i))
 {
   if i == 0 {
     AbstractionInit(ss(0));
   } else {
-    InvAt(e, ss, i - 1);
-    AbstractionInductive(ss(i - 1), ss(i), e(i - 1));
+    InvAt(tr, ss, i - 1);
+    AbstractionInductive(ss(i - 1), ss(i), tr(i - 1));
   }
 }
 
-lemma RefinementTo(e: nat -> Event, ss: nat -> Code.Variables, i: nat)
-  requires forall n: nat :: Code.Next(ss(n), ss(n + 1), e(n))
+lemma RefinementTo(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
+  requires forall n: nat :: Code.Next(ss(n), ss(n + 1), tr(n))
   requires forall n: nat :: Inv(ss(n))
   ensures
     var ss' := (j: nat) => Abstraction(ss(j));
-    && forall n: nat | n < i :: Spec.Next(ss'(n), ss'(n + 1), e(n))
+    && forall n: nat | n < i :: Spec.Next(ss'(n), ss'(n + 1), tr(n))
 {
   if i == 0 {
     return;
   } else {
     var ss' := (j: nat) => Abstraction(ss(j));
-    RefinementTo(e, ss, i - 1);
-    AbstractionInductive(ss(i - 1), ss(i), e(i - 1));
-    AbstractionInductive(ss(i), ss(i+1), e(i));
-    assert Spec.Next(ss'(i), ss'(i + 1), e(i));
+    RefinementTo(tr, ss, i - 1);
+    AbstractionInductive(ss(i - 1), ss(i), tr(i - 1));
+    AbstractionInductive(ss(i), ss(i+1), tr(i));
+    assert Spec.Next(ss'(i), ss'(i + 1), tr(i));
   }
 }
 
-lemma Refinement(e: nat -> Event)
-  requires Code.IsBehavior(e)
-  ensures Spec.IsBehavior(e)
+lemma Refinement(tr: nat -> Event)
+  requires Code.IsBehavior(tr)
+  ensures Spec.IsBehavior(tr)
 {
   var ss: nat -> Code.Variables :|
     && Code.Init(ss(0))
-    && forall n: nat :: Code.Next(ss(n), ss(n + 1), e(n));
+    && forall n: nat :: Code.Next(ss(n), ss(n + 1), tr(n));
   forall i: nat
     ensures Inv(ss(i)) {
-    InvAt(e, ss, i);
+    InvAt(tr, ss, i);
   }
 
   var ss': nat -> Spec.Variables :=
@@ -101,8 +101,8 @@ lemma Refinement(e: nat -> Event)
     AbstractionInit(ss(0));
   }
   forall n: nat
-    ensures Spec.Next(ss'(n), ss'(n + 1), e(n))
+    ensures Spec.Next(ss'(n), ss'(n + 1), tr(n))
   {
-    RefinementTo(e, ss, n+1);
+    RefinementTo(tr, ss, n+1);
   }
 }
