@@ -41,6 +41,12 @@ module Spec {
 ghost predicate Inv(v: Code.Variables)
 ghost function Abstraction(v: Code.Variables): Spec.Variables
 
+// These two properties of the abstraction are sometimes called a "forward
+// simulation", to distinguish them from refinement which is the property we're
+// trying to achieve. (There is also an analogous "backward simulation" that
+// works in the reverse direction of execution and is more complicated - we
+// won't need it).
+
 lemma {:axiom} AbstractionInit(v: Code.Variables)
   requires Code.Init(v)
   ensures Inv(v)
@@ -52,6 +58,8 @@ lemma {:axiom} AbstractionInductive(v: Code.Variables, v': Code.Variables, ev: E
   ensures Inv(v')
   ensures Spec.Next(Abstraction(v), Abstraction(v'), ev)
 
+// InvAt is a helper lemma to show the invariant always holds using Dafny
+// induction.
 lemma InvAt(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
   requires Code.Init(ss(0))
   requires forall k:nat :: Code.Next(ss(k), ss(k + 1), tr(k))
@@ -65,6 +73,8 @@ lemma InvAt(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
   }
 }
 
+// RefinementTo is a helper lemma to prove refinement inductively (for a
+// specific sequence of states).
 lemma RefinementTo(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
   requires forall n: nat :: Code.Next(ss(n), ss(n + 1), tr(n))
   requires forall n: nat :: Inv(ss(n))
@@ -78,11 +88,11 @@ lemma RefinementTo(tr: nat -> Event, ss: nat -> Code.Variables, i: nat)
     var ss' := (j: nat) => Abstraction(ss(j));
     RefinementTo(tr, ss, i - 1);
     AbstractionInductive(ss(i - 1), ss(i), tr(i - 1));
-    AbstractionInductive(ss(i), ss(i+1), tr(i));
-    assert Spec.Next(ss'(i), ss'(i + 1), tr(i));
   }
 }
 
+// Refinement is the key property we use the abstraction and forward simulation
+// to prove.
 lemma Refinement(tr: nat -> Event)
   requires Code.IsBehavior(tr)
   ensures Spec.IsBehavior(tr)
