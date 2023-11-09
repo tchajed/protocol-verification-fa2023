@@ -226,8 +226,12 @@ module RefinementProof {
     requires v.WF()
   {
     // FIXME: fill in here (solution: 4 lines)
-       DefaultValue // Replace me
-    // END EDIT
+    if exists hostidx :: HostHasKey(v, hostidx, key) then
+      var hostidx := KeyHolder(v, key);
+      v.maps[hostidx][key]
+    else
+      DefaultValue
+      // END EDIT
   }
 
   // We construct the finite set of possible map keys here, all
@@ -268,7 +272,9 @@ module RefinementProof {
     requires v.WF()
   {
     // FIXME: fill in here (solution: 1 line)
-     MapSpec.Variables(InitialMap()) // Replace me
+    MapSpec.Variables(
+      map k: Key | k in KnownKeys(v) :: AbstractionOneKey(v, k)
+    ) // Replace me
     // END EDIT
   }
 
@@ -288,8 +294,10 @@ module RefinementProof {
   ghost predicate Inv(v: Variables)
   {
     // FIXME: fill in here (solution: 5 lines)
-        false // Replace me
-    // END EDIT
+    && v.WF()
+    && KeysHeldUniquely(v)
+    && KnownKeys(v) == AllKeys()
+       // END EDIT
   }
 
   // FIXME: fill in here (solution: 10 lines)
@@ -327,8 +335,11 @@ module RefinementProof {
     ensures Inv(v')
     ensures MapSpec.Next(Abstraction(v), Abstraction(v'), event)
   {
-    var hostIdx := step.idx;
     // FIXME: fill in here (solution: 56 lines)
+    var hostIdx := step.idx;
+    assert event.PutEvent?;
+    var key := step.key;
+    var value := step.value;
     // END EDIT
   }
 
@@ -343,6 +354,24 @@ module RefinementProof {
     ensures MapSpec.Next(Abstraction(v), Abstraction(v'), event)
   {
     // FIXME: fill in here (solution: 6 lines)
+    var hostIdx := step.idx;
+    assert event.GetEvent?;
+    var key := step.key;
+    assert event.value == v.maps[step.idx][key];
+    assert v == v';
+    assert v.ValidHost(hostIdx);
+    assert Abstraction(v) == Abstraction(v');
+    assert key in KnownKeys(v) by {
+      HostKeysSubsetOfKnownKeys(v, v.mapCount());
+      assert key in v.maps[hostIdx];
+    }
+    assert Abstraction(v).mapp[key] == AbstractionOneKey(v, key);
+    assert HostHasKey(v, hostIdx, key);
+    assert KeyHolder(v, key) == hostIdx by {
+      reveal KeysHeldUniquely();
+    }
+    assert key in Abstraction(v).mapp;
+    assert event.value == Abstraction(v).mapp[key];
     // END EDIT
   }
 
