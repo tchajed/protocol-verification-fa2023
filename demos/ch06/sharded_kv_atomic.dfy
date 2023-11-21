@@ -277,14 +277,15 @@ module RefinementProof {
     // END EDIT
   }
 
-  // This definition is useful, but a bit trigger-happy, so we made it
-  // opaque. This means that its body is hidden from Dafny, unless you
-  // explicitly write "reveal KeysHeldUniquely();", at which point the
-  // body of the predicate becomes available within the current context
-  ghost predicate {:opaque} KeysHeldUniquely(v: Variables)
+  ghost predicate KeysHeldUniquely(v: Variables)
     requires v.WF()
   {
     forall key, hostidx:HostIdx, otherhost:HostIdx
+      // Previously, the solution had this whole predicate opaque. In this demo
+      // I opted to instead give it a more restrictive trigger - I believe it
+      // would be fine to go with the auto-generated one, but this one is more
+      // specific.
+      {:trigger key in v.maps[hostidx], v.maps[otherhost]}
       | && v.ValidHost(hostidx) && v.ValidHost(otherhost)
         && key in v.maps[hostidx] && key in v.maps[otherhost]
       :: hostidx == otherhost
@@ -309,7 +310,7 @@ module RefinementProof {
     ensures MapSpec.Init(Abstraction(v))
     ensures Inv(v)
   {
-    // FIXME: fill in here (solution: 2 lines)
+    // FIXME: fill in here (solution: 1 line)
     // END EDIT
   }
 
@@ -321,7 +322,6 @@ module RefinementProof {
     requires HostHasKey(v, hostidx, key)
     ensures KeyHolder(v, key) == hostidx
   {
-    reveal KeysHeldUniquely();
   }
 
   // This is not a goal by itself, it's one of the cases you'll need to prove
@@ -366,9 +366,7 @@ module RefinementProof {
     }
     assert Abstraction(v).mapp[key] == AbstractionOneKey(v, key);
     assert HostHasKey(v, hostIdx, key);
-    assert KeyHolder(v, key) == hostIdx by {
-      reveal KeysHeldUniquely();
-    }
+    assert KeyHolder(v, key) == hostIdx;
     assert key in Abstraction(v).mapp;
     assert event.value == Abstraction(v).mapp[key];
     // END EDIT
