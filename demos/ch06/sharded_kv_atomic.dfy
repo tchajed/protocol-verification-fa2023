@@ -225,7 +225,7 @@ module RefinementProof {
   ghost function AbstractionOneKey(v: Variables, key:Key) : Value
     requires v.WF()
   {
-    // FIXME: fill in here (solution: 4 lines)
+    // DONE: fill in here (solution: 4 lines)
     if exists hostidx :: HostHasKey(v, hostidx, key) then
       var hostidx := KeyHolder(v, key);
       v.maps[hostidx][key]
@@ -256,12 +256,11 @@ module RefinementProof {
 
   // Packaged as lemma. Proves trivially as ensures of KnownKeys,
   // but creates a trigger storm.
-  lemma HostKeysSubsetOfKnownKeys(v: Variables, count: nat)
+  lemma HostKeysSubsetOfKnownKeys(v: Variables)
     requires v.WF()
-    requires count <= v.mapCount()
-    ensures forall idx | 0 <= idx < count :: v.maps[idx].Keys <= KnownKeys(v)
+    ensures forall idx | 0 <= idx < v.mapCount() :: v.maps[idx].Keys <= KnownKeys(v)
   {
-    forall idx | 0 <= idx < count ensures v.maps[idx].Keys <= KnownKeys(v)
+    forall idx | 0 <= idx < v.mapCount() ensures v.maps[idx].Keys <= KnownKeys(v)
     {
       UnionSeqOfSets_auto<Key>();
       assert v.maps[idx].Keys == MapDomains(v)[idx];  // trigger
@@ -271,7 +270,7 @@ module RefinementProof {
   ghost function Abstraction(v: Variables) : MapSpec.Variables
     requires v.WF()
   {
-    // FIXME: fill in here (solution: 1 line)
+    // DONE: fill in here (solution: 1 line)
     MapSpec.Variables(
       map k: Key | k in KnownKeys(v) :: AbstractionOneKey(v, k)
     ) // Replace me
@@ -280,7 +279,7 @@ module RefinementProof {
 
   // This definition is useful, but a bit trigger-happy, so we made it
   // opaque. This means that its body is hidden from Dafny, unless you
-  // explicitly write "reveal_KeysHeldUniquely();", at which point the
+  // explicitly write "reveal KeysHeldUniquely();", at which point the
   // body of the predicate becomes available within the current context
   ghost predicate {:opaque} KeysHeldUniquely(v: Variables)
     requires v.WF()
@@ -293,14 +292,14 @@ module RefinementProof {
 
   ghost predicate Inv(v: Variables)
   {
-    // FIXME: fill in here (solution: 5 lines)
+    // DONE: fill in here (solution: 5 lines)
     && v.WF()
     && KeysHeldUniquely(v)
     && KnownKeys(v) == AllKeys()
        // END EDIT
   }
 
-  // FIXME: fill in here (solution: 10 lines)
+  // FIXME: fill in here (solution: 9 lines)
   // add any helper lemmas you need here
   // END EDIT
 
@@ -322,7 +321,7 @@ module RefinementProof {
     requires HostHasKey(v, hostidx, key)
     ensures KeyHolder(v, key) == hostidx
   {
-    reveal_KeysHeldUniquely();
+    reveal KeysHeldUniquely();
   }
 
   // This is not a goal by itself, it's one of the cases you'll need to prove
@@ -362,7 +361,7 @@ module RefinementProof {
     assert v.ValidHost(hostIdx);
     assert Abstraction(v) == Abstraction(v');
     assert key in KnownKeys(v) by {
-      HostKeysSubsetOfKnownKeys(v, v.mapCount());
+      HostKeysSubsetOfKnownKeys(v);
       assert key in v.maps[hostIdx];
     }
     assert Abstraction(v).mapp[key] == AbstractionOneKey(v, key);
