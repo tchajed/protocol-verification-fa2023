@@ -1,4 +1,4 @@
-#lang ivy1.6
+#lang ivy1.7
 
 # run with ivy_check trace=true to see counter examples to induction
 
@@ -12,9 +12,11 @@ relation server_client_grant(N:node)
 # per-client state (just a single boolean)
 relation client_has_lock(N:node)
 
-init server_unlocked
-init forall N:node. ~server_client_grant(N)
-init forall N:node. ~client_has_lock(N)
+after init {
+  server_unlocked := true;
+  server_client_grant(N) := false;
+  client_has_lock(N) := false;
+}
 
 action acquire(n: node) = {
   assume server_unlocked;
