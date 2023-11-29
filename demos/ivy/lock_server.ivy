@@ -1,0 +1,45 @@
+#lang ivy1.6
+
+# run with ivy_check trace=true to see counter examples to induction
+
+# nodes are identified by an abstract type rather than natural numbers
+type node
+
+# server's state: it will be an invariant that these are mutually exclusive
+relation server_unlocked
+relation server_client_grant(N:node)
+
+# per-client state (just a single boolean)
+relation client_has_lock(N:node)
+
+init server_unlocked
+init forall N:node. ~server_client_grant(N)
+init forall N:node. ~client_has_lock(N)
+
+action acquire(n: node) = {
+  assume server_unlocked;
+  server_unlocked := false;
+  server_client_grant(n) := true;
+  client_has_lock(n) := true;
+}
+
+action release(n: node) = {
+  assume client_has_lock(n);
+  server_client_grant(n) := false;
+  client_has_lock(n) := false;
+  server_unlocked := true;
+}
+
+conjecture [safety] forall N1:node, N2:node.
+  client_has_lock(N1) & client_has_lock(N2) -> N1 = N2
+
+# see what happens without these conjectures (which are supporting inductive
+# invariants)
+conjecture [enum1] forall N:node.
+  ~(server_unlocked & server_client_grant(N))
+conjecture [enum2] forall N1:node, N2:node.
+  server_client_grant(N1) & server_client_grant(N2) -> N1 = N2
+conjecture [inv1] forall N:node.
+  ~(server_unlocked & client_has_lock(N))
+conjecture [client_server_sync] forall N:node.
+  client_has_lock(N) <-> server_client_grant(N)
