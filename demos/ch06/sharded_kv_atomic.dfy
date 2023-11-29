@@ -267,6 +267,16 @@ module RefinementProof {
     }
   }
 
+  lemma KnownKeyHasOwner(v: Variables, key: Key) returns (hostIdx: nat)
+    requires v.WF()
+    requires key in KnownKeys(v)
+    ensures HostHasKey(v, hostIdx, key)
+  {
+    EachUnionMemberBelongsToASet(MapDomains(v));
+    var i:nat :| 0 <= i < |MapDomains(v)| && key in MapDomains(v)[i];
+    hostIdx := i;
+  }
+
   ghost function Abstraction(v: Variables) : MapSpec.Variables
     requires v.WF()
   {
@@ -383,6 +393,46 @@ module RefinementProof {
     ensures MapSpec.Next(Abstraction(v), Abstraction(v'), event)
   {
     // FIXME: fill in here (solution: 56 lines)
+    assert event.NoOpEvent?;
+
+    var sendIdx := step.sendIdx;
+    var recvIdx := step.recvIdx;
+    var key0 := step.key;
+
+    assert KnownKeys(v) <= KnownKeys(v') by {
+      assert key0 in v.maps[sendIdx];
+      assert key0 in v'.maps[recvIdx];
+      assert HostHasKey(v, sendIdx, key0);
+      forall key | key in KnownKeys(v)
+        ensures key in KnownKeys(v') {
+          if key == key0 {
+            assert key in v'.maps[recvIdx];
+            var hostIdx := KnownKeyHasOwner(v, key);
+            assert hostIdx == sendIdx;
+            // assert key in KnownKeys(v') by {
+            //   HostKeysSubsetOfKnownKeys(v');
+            // }
+          } else {
+            assert key in KnownKeys(v);
+            // var hostIdx := KnownKeyHasOwner(v, key);
+            // assert hostIdx != sendIdx by {
+            // }
+            // assert HostHasKey(v', hostIdx, key);
+            assert key in KnownKeys(v') by {
+              HostKeysSubsetOfKnownKeys(v');
+            }
+          }
+        }
+    }
+
+    assert KnownKeys(v') <= KnownKeys(v);
+
+    assert KnownKeys(v) == KnownKeys(v');
+
+    forall key |  key in KnownKeys(v)
+    ensures AbstractionOneKey(v, key) == AbstractionOneKey(v', key)
+    {}
+    assert Abstraction(v) == Abstraction(v');
     // END EDIT
   }
 
