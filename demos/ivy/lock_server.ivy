@@ -18,27 +18,40 @@ init forall N:node. ~client_has_lock(N)
 
 action acquire(n: node) = {
   assume server_unlocked;
+
+  # these two lines set the server state, which is simulating an enum
   server_unlocked := false;
-  server_client_grant(n) := true;
+  # the capital N here sets server_client_grant for all N
+  server_client_grant(N) := N = n;
+
   client_has_lock(n) := true;
 }
 
 action release(n: node) = {
   assume client_has_lock(n);
-  server_client_grant(n) := false;
+
   client_has_lock(n) := false;
+
   server_unlocked := true;
+  # capital N sets server_client_grant for all N
+  server_client_grant(N) := false;
 }
+
+export acquire
+export release
 
 conjecture [safety] forall N1:node, N2:node.
   client_has_lock(N1) & client_has_lock(N2) -> N1 = N2
 
-# see what happens without these conjectures (which are supporting inductive
-# invariants)
+# self-inductive invariants that are due to correctly managing the server's
+# enum state
 conjecture [enum1] forall N:node.
   ~(server_unlocked & server_client_grant(N))
 conjecture [enum2] forall N1:node, N2:node.
   server_client_grant(N1) & server_client_grant(N2) -> N1 = N2
+
+# see what happens without these conjectures (which are supporting inductive
+# invariants)
 conjecture [inv1] forall N:node.
   ~(server_unlocked & client_has_lock(N))
 conjecture [client_server_sync] forall N:node.
