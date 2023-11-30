@@ -1,0 +1,33 @@
+#lang ivy1.7
+
+type client
+type server
+
+relation semaphore(S: server)
+relation link(C: client, S: server)
+
+after init {
+  semaphore(Y) := true;
+  link(X, Y) := false;
+}
+
+action connect(c: client, s: server) = {
+  require semaphore(s);
+  link(c, s) := true;
+  semaphore(s) := false;
+}
+
+action disconnect(c: client, s: server) = {
+  require link(c, s);
+  link(c, s) := false;
+  semaphore(s) := true;
+}
+
+export connect
+export disconnect
+
+conjecture [safety] forall C1: client, C2: client, S: server.
+  link(C1, S) & link(C2, S) -> C1 = C2
+
+conjecture [ind] forall C: client, S: server.
+  ~(semaphore(S) & link(C, S))
